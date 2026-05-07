@@ -1,0 +1,1165 @@
+<!DOCTYPE html>
+<html lang="id" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SIM JASPEL 2026 - Sistem Informasi Manajemen Jasa Pelayanan</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        darkBg: '#0f172a',
+                        darkPanel: '#1e293b',
+                        darkBorder: '#334155'
+                    }
+                }
+            }
+        }
+    </script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+        
+        body { font-family: 'Plus Jakarta Sans', sans-serif; transition: background-color 0.3s, color 0.3s; }
+        .sidebar-transition { transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+        .active-menu { background: rgba(250, 204, 21, 0.15); border-left: 4px solid #facc15; color: #eab308 !important; }
+        .table-fixed-height { height: calc(100vh - 280px); }
+        
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        .dark .custom-scrollbar::-webkit-scrollbar-thumb { background: #475569; }
+        
+        .glass-panel { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); }
+        .dark .glass-panel { background: rgba(30, 41, 59, 0.95); }
+        
+        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .animate-slide-up { animation: slideUp 0.3s ease-out; }
+        @keyframes spinSlow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .sync-spin { animation: spinSlow 2s linear infinite; }
+    </style>
+</head>
+<body class="overflow-hidden bg-slate-50 dark:bg-darkBg text-slate-800 dark:text-slate-200">
+
+    <div id="toastContainer" class="fixed top-6 right-6 z-[999] space-y-4"></div>
+
+    <div id="loginPage" class="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-slate-900 transition-opacity duration-500">
+        <div class="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]"></div>
+        
+        <div id="syncStatusUI" class="relative z-10 mb-6 bg-slate-800/80 backdrop-blur border border-slate-700 px-6 py-2 rounded-full text-xs font-bold text-slate-300 flex items-center shadow-lg transition-all hidden">
+            <i class="fas fa-sync-alt text-yellow-400 mr-2 sync-spin"></i> <span id="syncStatusText">Mempersiapkan Koneksi DB Spreadsheet...</span>
+        </div>
+
+        <div class="relative w-full max-w-md p-8 glass-panel rounded-[2rem] shadow-2xl mx-4 animate-slide-up border border-white/10">
+            <div class="text-center mb-8">
+                <div class="bg-yellow-400 w-20 h-20 rounded-2xl mx-auto flex items-center justify-center shadow-lg rotate-3 mb-4 transition-all" id="landingLogoContainer">
+                    <img id="landingLogo" src="" alt="Logo" class="w-12 h-12 object-contain hidden" />
+                    <i class="fas fa-hospital-user text-3xl text-slate-900" id="landingIcon"></i>
+                </div>
+                <h1 class="text-3xl font-black tracking-tight text-slate-900 dark:text-white">SIM <span class="text-yellow-500">JASPEL</span></h1>
+                <p class="text-slate-500 dark:text-slate-400 text-sm mt-2 font-medium" id="landingInstansi">Sistem Terintegrasi RS Atma Husada</p>
+            </div>
+            
+            <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-5">
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">Username</label>
+                    <div class="relative">
+                        <i class="fas fa-user absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                        <input type="text" id="loginUsername" required placeholder="Masukkan username..." class="w-full pl-11 pr-4 py-3 bg-slate-50 dark:bg-darkPanel dark:text-white dark:border-darkBorder border border-slate-200 rounded-xl focus:ring-2 focus:ring-yellow-400 outline-none transition-all font-medium">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">Password</label>
+                    <div class="relative">
+                        <i class="fas fa-lock absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                        <input type="password" id="loginPassword" required placeholder="Masukkan password..." class="w-full pl-11 pr-4 py-3 bg-slate-50 dark:bg-darkPanel dark:text-white dark:border-darkBorder border border-slate-200 rounded-xl focus:ring-2 focus:ring-yellow-400 outline-none transition-all font-medium">
+                    </div>
+                </div>
+                <div id="loginError" class="text-red-500 text-xs font-bold hidden text-center bg-red-50 dark:bg-red-900/20 p-2 rounded-lg border border-red-100 dark:border-red-800/30">Username atau Password salah!</div>
+                <button type="submit" id="btnLogin" class="w-full bg-slate-900 hover:bg-slate-800 text-yellow-400 font-bold py-3.5 rounded-xl shadow-lg transition-all transform active:scale-95 flex justify-center items-center">
+                    Masuk Sistem <i class="fas fa-sign-in-alt ml-2"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div id="mainDashboard" class="flex h-screen hidden">
+        
+        <aside id="sidebar" class="sidebar-transition w-72 bg-slate-900 text-slate-300 flex flex-col shadow-2xl relative z-50">
+            <div class="p-6 flex items-center justify-between border-b border-slate-800">
+                <div class="flex items-center space-x-3 sidebar-content">
+                    <div class="bg-yellow-400 p-2 rounded-lg text-slate-900 shadow-lg shadow-yellow-400/20 overflow-hidden">
+                        <img id="sidebarLogo" src="" alt="Logo" class="w-6 h-6 object-contain hidden" />
+                        <i class="fas fa-microchip" id="sidebarIcon"></i>
+                    </div>
+                    <span class="font-bold text-lg tracking-tight text-white line-clamp-1" id="sidebarInstansiName">RS Atma Husada</span>
+                </div>
+                <button onclick="toggleSidebar()" class="p-2 hover:bg-slate-800 rounded-xl transition-colors text-white">
+                    <i class="fas fa-bars-staggered" id="toggleIcon"></i>
+                </button>
+            </div>
+
+            <div class="flex-1 overflow-y-auto py-4 custom-scrollbar flex flex-col">
+                <div class="px-6 mb-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest sidebar-content">Operasi Utama</div>
+                <nav class="space-y-1 px-3 mb-6">
+                    <button onclick="switchView('dashboard')" id="nav-dashboard" class="w-full flex items-center space-x-3 p-3 rounded-xl transition-all hover:bg-slate-800 active-menu group">
+                        <i class="fas fa-chart-pie w-6 text-center group-hover:text-yellow-400"></i>
+                        <span class="text-sm font-semibold sidebar-content">Dashboard Utama</span>
+                    </button>
+                    
+                    <button onclick="switchView('table', 'users')" id="nav-table-users" class="w-full flex items-center space-x-3 p-3 rounded-xl transition-all hover:bg-slate-800 group role-menu role-superadmin hidden text-slate-300">
+                        <i class="fas fa-users-cog w-6 text-center group-hover:text-yellow-400"></i>
+                        <span class="text-sm font-semibold sidebar-content">Master User & Akses</span>
+                    </button>
+
+                    <button onclick="switchView('formula')" id="nav-formula" class="w-full flex items-center space-x-3 p-3 rounded-xl transition-all hover:bg-slate-800 group role-menu role-superadmin role-perumus hidden text-slate-300">
+                        <i class="fas fa-calculator w-6 text-center group-hover:text-yellow-400"></i>
+                        <span class="text-sm font-semibold sidebar-content">Master Formula JP</span>
+                    </button>
+
+                    <button onclick="switchView('settings')" id="nav-settings" class="w-full flex items-center space-x-3 p-3 rounded-xl transition-all hover:bg-slate-800 group role-menu role-superadmin role-admin hidden text-slate-300">
+                        <i class="fas fa-cogs w-6 text-center group-hover:text-yellow-400"></i>
+                        <span class="text-sm font-semibold sidebar-content">Pengaturan Sistem</span>
+                    </button>
+                </nav>
+
+                <p class="px-6 mb-3 mt-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest sidebar-content">Master Data Jasa</p>
+                <nav id="navContainer" class="space-y-1 px-3 mb-8"></nav>
+            </div>
+
+            <div class="p-4 border-t border-slate-800 sidebar-content bg-slate-950">
+                <div class="flex items-center space-x-3 mb-4 px-2">
+                    <div class="w-10 h-10 rounded-full bg-slate-800 border-2 border-yellow-400 flex items-center justify-center text-yellow-400 font-bold shadow-lg" id="userInitial">A</div>
+                    <div>
+                        <p class="text-xs font-bold text-white" id="sidebarUserName">Admin</p>
+                        <p class="text-[10px] text-yellow-400 uppercase tracking-wider font-semibold" id="sidebarUserRole">Superadmin</p>
+                    </div>
+                </div>
+                <button onclick="logout()" class="w-full flex items-center justify-center space-x-3 p-2.5 bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white rounded-xl transition-all">
+                    <i class="fas fa-power-off"></i>
+                    <span class="font-semibold text-sm">Keluar Sistem</span>
+                </button>
+            </div>
+        </aside>
+
+        <main class="flex-1 flex flex-col min-w-0 bg-slate-50 dark:bg-darkBg relative transition-colors">
+            <header class="h-20 bg-white dark:bg-darkPanel border-b border-slate-200 dark:border-darkBorder flex items-center justify-between px-8 shadow-sm z-40 sticky top-0 transition-colors">
+                <div>
+                    <h2 id="currentTableName" class="text-2xl font-black text-slate-800 dark:text-white tracking-tight">Dashboard Utama</h2>
+                    <p id="currentTableSub" class="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">Rekapitulasi Sistem Informasi Jasa Pelayanan</p>
+                </div>
+                <div class="flex items-center space-x-6">
+                    <div class="relative group">
+                        <button class="p-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
+                            <i class="fas fa-palette"></i>
+                        </button>
+                        <div class="absolute right-0 mt-2 w-36 bg-white dark:bg-darkPanel rounded-xl shadow-xl border border-slate-100 dark:border-darkBorder hidden group-hover:block overflow-hidden z-50">
+                            <button onclick="setTheme('light')" class="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"><i class="fas fa-sun w-5"></i> Light</button>
+                            <button onclick="setTheme('dark')" class="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"><i class="fas fa-moon w-5"></i> Dark</button>
+                            <button onclick="setTheme('system')" class="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"><i class="fas fa-desktop w-5"></i> System</button>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col items-end hidden md:flex">
+                        <p id="clock" class="text-sm font-black text-slate-800 dark:text-white">00:00:00</p>
+                        <p id="currentDate" class="text-[10px] font-bold text-slate-400 uppercase">Hari Ini</p>
+                    </div>
+                    <div class="h-10 w-[1px] bg-slate-200 dark:bg-darkBorder hidden md:block"></div>
+                    <div class="text-right hidden md:block">
+                        <p class="text-[10px] text-emerald-500 font-bold uppercase tracking-widest mb-0.5"><i class="fas fa-circle text-[8px] mr-1 animate-pulse"></i> Mode Aktif</p>
+                        <p class="text-sm font-bold text-slate-800 dark:text-white" id="topbarRole">Super Administrator</p>
+                    </div>
+                </div>
+            </header>
+
+            <div id="view-dashboard" class="p-8 flex-1 overflow-auto bg-slate-50 dark:bg-darkBg custom-scrollbar">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div class="bg-white dark:bg-darkPanel p-6 rounded-[2rem] shadow-sm border border-slate-200 dark:border-darkBorder relative overflow-hidden">
+                        <div class="absolute -right-4 -top-4 w-24 h-24 bg-blue-50 dark:bg-blue-900/20 rounded-full opacity-50"></div>
+                        <h3 class="text-slate-500 dark:text-slate-400 font-bold text-xs tracking-wider mb-1 uppercase">Total Pegawai ASN</h3>
+                        <p class="text-4xl font-black text-blue-600 dark:text-blue-400" id="dash-asn">0</p>
+                    </div>
+                    <div class="bg-white dark:bg-darkPanel p-6 rounded-[2rem] shadow-sm border border-slate-200 dark:border-darkBorder relative overflow-hidden">
+                        <div class="absolute -right-4 -top-4 w-24 h-24 bg-orange-50 dark:bg-orange-900/20 rounded-full opacity-50"></div>
+                        <h3 class="text-slate-500 dark:text-slate-400 font-bold text-xs tracking-wider mb-1 uppercase">Total Non-ASN</h3>
+                        <p class="text-4xl font-black text-orange-500 dark:text-orange-400" id="dash-nonasn">0</p>
+                    </div>
+                    <div class="bg-slate-900 dark:bg-slate-800 p-6 rounded-[2rem] shadow-xl relative overflow-hidden text-white transform transition-transform hover:scale-105 border border-slate-700">
+                        <div class="absolute -right-4 -top-4 w-32 h-32 bg-yellow-400 rounded-full opacity-20"></div>
+                        <h3 class="text-yellow-400 font-bold text-xs tracking-wider mb-1 uppercase">Pagu Jasa Pelayanan</h3>
+                        <p class="text-3xl font-black" id="dash-realisasi">Rp 0</p>
+                        <p class="text-[10px] text-slate-400 font-bold mt-2 uppercase tracking-widest">Berdasarkan Master Formula</p>
+                    </div>
+                </div>
+                
+                <div class="bg-white dark:bg-darkPanel rounded-[2rem] shadow-sm p-8 border border-slate-200 dark:border-darkBorder">
+                    <h3 class="text-lg font-bold text-slate-800 dark:text-white mb-2"><i class="fas fa-info-circle text-blue-500 mr-2"></i> Panduan Sistem Sesuai Role Anda</h3>
+                    <p class="text-slate-600 dark:text-slate-300 text-sm mb-4 font-medium" id="roleGuidance">Memuat panduan...</p>
+                </div>
+            </div>
+
+            <div id="view-settings" class="p-8 flex-1 hidden bg-slate-50 dark:bg-darkBg overflow-auto custom-scrollbar">
+                <div class="bg-white dark:bg-darkPanel rounded-[2.5rem] shadow-sm p-8 border border-slate-200 dark:border-darkBorder max-w-4xl mx-auto">
+                    <div class="flex items-center justify-between mb-8 border-b border-slate-100 dark:border-darkBorder pb-4">
+                        <div>
+                            <h3 class="text-2xl font-bold text-slate-800 dark:text-white">Pengaturan Sistem</h3>
+                            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 font-medium">Ubah identitas instansi dan URL sinkronisasi database</p>
+                        </div>
+                        <button onclick="saveSettings()" class="bg-slate-900 dark:bg-slate-700 text-yellow-400 px-6 py-3 rounded-2xl font-bold shadow-lg hover:bg-slate-800 transition-all text-sm flex items-center active:scale-95">
+                            <i class="fas fa-save mr-2"></i> Simpan Pengaturan
+                        </button>
+                    </div>
+                    
+                    <form id="settingsForm" class="space-y-6">
+                        <div class="grid grid-cols-1 gap-6">
+                            <div class="p-6 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-darkBorder">
+                                <label class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Nama Instansi</label>
+                                <input type="text" id="set_instansi" class="w-full mt-3 p-3.5 bg-white dark:bg-darkPanel dark:text-white border border-slate-200 dark:border-darkBorder rounded-xl font-bold focus:ring-2 focus:ring-yellow-400 outline-none">
+                            </div>
+                            <div class="p-6 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-darkBorder">
+                                <label class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide">URL Logo Aplikasi / Instansi (Opsional)</label>
+                                <input type="text" id="set_logo" placeholder="https://contoh.com/logo.png" class="w-full mt-3 p-3.5 bg-white dark:bg-darkPanel dark:text-white border border-slate-200 dark:border-darkBorder rounded-xl font-bold focus:ring-2 focus:ring-yellow-400 outline-none">
+                            </div>
+                            <div class="p-6 bg-emerald-50 dark:bg-emerald-900/20 rounded-2xl border border-emerald-100 dark:border-emerald-800/30">
+                                <label class="text-xs font-bold text-emerald-800 dark:text-emerald-400 uppercase tracking-wide">Webhook Google Spreadsheet URL (Auto-Sync)</label>
+                                <input type="text" id="set_webhook" placeholder="https://script.google.com/macros/s/..." class="w-full mt-3 p-3.5 bg-white dark:bg-darkPanel dark:text-white border border-emerald-200 dark:border-emerald-800/50 rounded-xl font-bold focus:ring-2 focus:ring-emerald-400 outline-none">
+                                <p class="text-[10px] text-emerald-600 dark:text-emerald-500 mt-2"><i class="fas fa-info-circle"></i> URL ini digunakan untuk menyinkronkan data secara otomatis setiap login.</p>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div id="view-formula" class="p-8 flex-1 hidden bg-slate-50 dark:bg-darkBg overflow-auto custom-scrollbar">
+                <div class="max-w-6xl mx-auto space-y-8">
+                    <div class="bg-white dark:bg-darkPanel rounded-[2.5rem] shadow-sm p-8 border border-slate-200 dark:border-darkBorder">
+                        <div class="flex items-center justify-between mb-8 border-b border-slate-100 dark:border-darkBorder pb-4">
+                            <div>
+                                <h3 class="text-2xl font-bold text-slate-800 dark:text-white">Master Ketetapan Dasar</h3>
+                                <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 font-medium">Pengaturan variabel hitung global</p>
+                            </div>
+                            <button onclick="saveMasterFormula()" class="bg-slate-900 dark:bg-slate-700 text-yellow-400 px-6 py-3 rounded-2xl font-bold shadow-lg hover:bg-slate-800 transition-all text-sm flex items-center active:scale-95">
+                                <i class="fas fa-save mr-2"></i> Simpan Global
+                            </button>
+                        </div>
+                        
+                        <form id="formulaForm" class="space-y-6">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div class="p-6 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-darkBorder">
+                                    <label class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Target Pendapatan RS (Rp)</label>
+                                    <input type="number" id="form_target_pendapatan" class="w-full mt-3 p-3.5 bg-white dark:bg-darkPanel dark:text-white border border-slate-200 dark:border-darkBorder rounded-xl font-bold focus:ring-2 focus:ring-yellow-400 outline-none">
+                                </div>
+                                <div class="p-6 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-darkBorder">
+                                    <label class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Proporsi Pagu JP (%)</label>
+                                    <input type="number" step="0.1" id="form_proporsi_jp" class="w-full mt-3 p-3.5 bg-white dark:bg-darkPanel dark:text-white border border-slate-200 dark:border-darkBorder rounded-xl font-bold focus:ring-2 focus:ring-yellow-400 outline-none">
+                                </div>
+                                <div class="p-6 bg-blue-50/50 dark:bg-blue-900/20 rounded-2xl border border-blue-100 dark:border-blue-900/50">
+                                    <label class="text-xs font-bold text-blue-800 dark:text-blue-400 uppercase tracking-wide">Nilai Rupiah Per Poin Dasar (Rp)</label>
+                                    <input type="number" step="0.01" id="form_nilai_per_poin" class="w-full mt-3 p-3.5 bg-white dark:bg-darkPanel dark:text-white border border-blue-200 dark:border-blue-800/50 rounded-xl font-bold focus:ring-2 focus:ring-blue-400 outline-none">
+                                </div>
+                                <div class="p-6 bg-red-50/50 dark:bg-red-900/20 rounded-2xl border border-red-100 dark:border-red-900/50">
+                                    <label class="text-xs font-bold text-red-800 dark:text-red-400 uppercase tracking-wide">Potongan PPh 21 Final (%)</label>
+                                    <input type="number" step="0.1" id="form_pajak_pph21" class="w-full mt-3 p-3.5 bg-white dark:bg-darkPanel dark:text-white border border-red-200 dark:border-red-800/50 rounded-xl font-bold focus:ring-2 focus:ring-red-400 outline-none">
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div id="dynamicFormulaSection" class="bg-white dark:bg-darkPanel rounded-[2.5rem] shadow-sm p-8 border border-slate-200 dark:border-darkBorder">
+                        <div class="flex items-center justify-between mb-8 border-b border-slate-100 dark:border-darkBorder pb-4">
+                            <div>
+                                <h3 class="text-2xl font-bold text-slate-800 dark:text-white">Rumus Kalkulasi Tabel</h3>
+                                <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 font-medium">Ubah logika hitung (formula) untuk masing-masing tabel</p>
+                            </div>
+                            <button onclick="saveDynamicFormulas()" class="bg-indigo-600 text-white px-6 py-3 rounded-2xl font-bold shadow-lg hover:bg-indigo-700 transition-all text-sm flex items-center active:scale-95">
+                                <i class="fas fa-save mr-2"></i> Simpan Rumus Tabel
+                            </button>
+                        </div>
+                        
+                        <div class="mb-6">
+                            <label class="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2">Pilih Tabel untuk Dikonfigurasi:</label>
+                            <select id="selectFormulaTable" onchange="loadTableFormulas()" class="w-full p-4 bg-slate-50 dark:bg-slate-800 dark:text-white border border-slate-200 dark:border-darkBorder rounded-xl font-bold focus:ring-2 focus:ring-indigo-400 outline-none transition-all">
+                                </select>
+                        </div>
+
+                        <div class="bg-indigo-50/50 dark:bg-indigo-900/20 p-5 rounded-2xl border border-indigo-100 dark:border-indigo-800/50 mb-6 text-sm text-indigo-800 dark:text-indigo-300">
+                            <i class="fas fa-info-circle mr-2"></i> <strong>Panduan Penulisan Rumus:</strong> Gunakan nama kolom yang tepat (cth: <code>Poin_Kinerja</code>). Variabel global yang tersedia: <code>GLOBAL.target_pendapatan</code>, <code>GLOBAL.proporsi_jp</code>, <code>GLOBAL.nilai_per_poin</code>, <code>GLOBAL.pajak_pph21</code>. Gunakan operator matematika standar (<code>+</code>, <code>-</code>, <code>*</code>, <code>/</code>, <code>()</code>). Gunakan <code>Number(Nama_Kolom||0)</code> untuk memastikan nilai berupa angka.
+                        </div>
+
+                        <div id="dynamicFormulaContainer" class="space-y-4">
+                            </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="view-tables" class="p-8 flex-1 hidden flex-col">
+                <div class="flex flex-col lg:flex-row justify-between items-center mb-6 gap-4">
+                    <div class="relative w-full lg:w-96 group">
+                        <i class="fas fa-search absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 dark:text-slate-500 group-focus-within:text-yellow-500 transition-colors"></i>
+                        <input type="text" id="searchInput" onkeyup="searchTable(this.value)" placeholder="Cari data dalam tabel..." class="w-full pl-14 pr-6 py-4 bg-white dark:bg-darkPanel dark:text-white border border-slate-200 dark:border-darkBorder rounded-[1.5rem] focus:ring-4 focus:ring-yellow-400/20 outline-none transition-all shadow-sm text-sm font-medium">
+                    </div>
+                    <div class="flex flex-wrap items-center justify-end space-x-3 w-full lg:w-auto">
+                        <input type="file" id="fileImportCsv" accept=".csv" onchange="handleImportCSV(event)" class="hidden">
+                        <button id="btnImport" onclick="document.getElementById('fileImportCsv').click()" class="bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 font-bold py-4 px-6 rounded-[1.5rem] hover:bg-emerald-100 dark:hover:bg-emerald-800/50 transition-all shadow-sm text-sm hidden">
+                            <i class="fas fa-file-import mr-2"></i> Impor CSV
+                        </button>
+
+                        <button id="btnExport" onclick="exportToCSV()" class="bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-darkBorder font-bold py-4 px-6 rounded-[1.5rem] hover:bg-slate-50 dark:hover:bg-slate-700 transition-all shadow-sm text-sm">
+                            <i class="fas fa-file-export mr-2"></i> Ekspor CSV
+                        </button>
+
+                        <button id="btnAddData" onclick="openModal('add')" class="bg-slate-900 text-yellow-400 font-bold py-4 px-8 rounded-[1.5rem] hover:bg-slate-800 transition-all shadow-xl shadow-slate-200 dark:shadow-none flex items-center justify-center text-sm group active:scale-95">
+                            <i class="fas fa-plus-circle mr-2 group-hover:rotate-90 transition-transform"></i> Tambah Data Baru
+                        </button>
+                    </div>
+                </div>
+
+                <div class="bg-white dark:bg-darkPanel rounded-[2.5rem] shadow-sm border border-slate-100 dark:border-darkBorder flex-1 flex flex-col overflow-hidden">
+                    <div class="overflow-auto custom-scrollbar table-fixed-height p-1">
+                        <table class="w-full text-left border-collapse">
+                            <thead class="sticky top-0 bg-slate-50/90 dark:bg-slate-800/90 backdrop-blur-md z-10 shadow-sm">
+                                <tr id="tableHead" class="border-b-2 border-slate-100 dark:border-darkBorder"></tr>
+                            </thead>
+                            <tbody id="tableBody" class="divide-y divide-slate-50 dark:divide-darkBorder text-sm"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div id="modalOverlay" class="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-[200] hidden flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-darkPanel w-full max-w-5xl rounded-[2.5rem] shadow-2xl overflow-hidden animate-slide-up border border-white/20 dark:border-darkBorder flex flex-col max-h-[90vh]">
+            <div class="p-8 border-b border-slate-100 dark:border-darkBorder flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/50">
+                <div>
+                    <h3 id="modalTitle" class="text-2xl font-black text-slate-800 dark:text-white">Form Input Data</h3>
+                    <p id="modalSubTitle" class="text-sm text-slate-500 dark:text-slate-400 font-medium italic mt-1"></p>
+                </div>
+                <button type="button" onclick="closeModal()" class="w-12 h-12 flex items-center justify-center rounded-2xl hover:bg-red-50 hover:text-red-500 text-slate-400 transition-all">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            
+            <form id="crudForm" onsubmit="saveData(event)" class="flex-1 flex flex-col overflow-hidden">
+                <input type="hidden" id="editIndex">
+                
+                <div class="p-8 overflow-y-auto flex-1 bg-white dark:bg-darkPanel custom-scrollbar">
+                    <div id="formGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6"></div>
+                    
+                    <div id="accessChecklistContainer" class="hidden mt-6 p-5 border border-slate-200 dark:border-darkBorder rounded-2xl bg-slate-50 dark:bg-slate-800/50">
+                        <h4 class="text-xs font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-3">Ceklist Hak Akses (Custom Izin)</h4>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm font-medium text-slate-700 dark:text-slate-300" id="accessChecklist">
+                            </div>
+                    </div>
+                </div>
+                
+                <div class="p-8 bg-slate-50 dark:bg-slate-800/80 border-t border-slate-100 dark:border-darkBorder flex flex-col md:flex-row justify-between items-center gap-4">
+                    <div class="text-xs text-slate-500 dark:text-slate-400 flex items-center font-medium italic">
+                        <i class="fas fa-info-circle text-blue-500 mr-2"></i> Kolom berlatar gelap dihitung otomatis / Readonly.
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <button type="button" onclick="closeModal()" class="px-8 py-3.5 text-slate-500 dark:text-slate-400 font-bold hover:bg-slate-200 dark:hover:bg-slate-700 rounded-2xl transition-all text-sm">Batal</button>
+                        <button type="submit" id="btnSaveData" class="px-10 py-3.5 bg-yellow-400 text-slate-900 font-black rounded-2xl shadow-xl shadow-yellow-400/20 hover:bg-yellow-300 transition-all active:scale-95 flex items-center text-sm">
+                            <i class="fas fa-check-circle mr-2"></i> Simpan Data
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // 1. KONFIGURASI DATABASE & TABEL
+        // ==========================================
+        const ALL_PERMISSIONS = ['create', 'read', 'update', 'delete', 'koreksi', 'manage_users', 'manage_formula'];
+        
+        const TABLE_CONFIG = {
+            'users': { name: 'User Akses', icon: 'fa-users-cog', restricted: ['superadmin'], cols: ['Username', 'Password', 'Nama_Lengkap', 'Role', 'Status'] },
+            'alokasi': { name: 'Alokasi Dana', icon: 'fa-wallet', access: ['superadmin', 'input_pendapatan', 'perumus', 'korektor'], cols: ['Periode_Bulan', 'Pendapatan_Kotor', 'Proporsi_JP_Persen', 'Pagu_Jasa_Pelayanan_Auto', 'Keterangan'] },
+            'indeks': { name: 'Indeks Pegawai', icon: 'fa-id-card-clip', access: ['superadmin', 'input_jp', 'korektor'], cols: ['ID_Pegawai', 'Nama_Pegawai', 'Golongan', 'Jabatan', 'Pendidikan', 'Masa_Kerja', 'Kelompok_Jasa', 'Poin_Dasar', 'Poin_Kompetensi', 'Poin_Risiko', 'Poin_Kinerja', 'Total_Poin_Auto', 'Usulan_Koreksi_Poin', 'Poin_Akhir_Auto', 'Estimasi_Nominal_Auto'] },
+            'postrem': { name: 'Post Remunerasi', icon: 'fa-file-invoice', access: ['superadmin', 'input_jp', 'korektor'], cols: ['ID_PostRem', 'Nama_Pegawai', 'Proporsi_Penyesuaian', 'Penyesuaian_Beban', 'Total_Post_Rem_Auto'] },
+            'beban': { name: 'Beban Tetap', icon: 'fa-calculator', access: ['superadmin', 'input_jp', 'korektor'], cols: ['ID_Beban', 'Nama_Kelompok', 'Alokasi_Dana', 'Realisasi', 'Keterangan'] },
+            'blud': { name: 'Pengelola BLUD', icon: 'fa-user-tie', access: ['superadmin', 'input_jp', 'korektor'], cols: ['ID_Pengelola', 'Nama_Pegawai', 'Jabatan_Pengelola', 'Poin_Kinerja', 'Nominal_Insentif_Auto'] },
+            'dewas': { name: 'Dewan Pengawas', icon: 'fa-user-check', access: ['superadmin', 'input_jp', 'korektor'], cols: ['ID_Dewas', 'Nama_Pegawai', 'Jabatan_Dewas', 'Honorarium', 'Pajak_Auto', 'Total_Diterima_Auto'] },
+            'tugas': { name: 'Tugas Tambahan', icon: 'fa-tasks', access: ['superadmin', 'input_jp', 'korektor'], cols: ['ID_Tugas', 'Nama_Pegawai', 'Nama_Tugas_Tambahan', 'Poin_Tugas', 'Nominal_Tugas_Auto'] },
+            'struktural': { name: 'Struktural', icon: 'fa-sitemap', access: ['superadmin', 'input_jp', 'korektor'], cols: ['ID_Struktural', 'Nama_Pegawai', 'Jabatan_Struktural', 'Poin_Jabatan', 'Nominal_Jasa_Auto'] },
+            'admin': { name: 'Administrasi', icon: 'fa-paste', access: ['superadmin', 'input_jp', 'korektor'], cols: ['ID_Admin', 'Nama_Pegawai', 'Unit_Kerja', 'Poin_Kinerja', 'Indeks_Rupiah', 'Nominal_Diterima_Auto'] },
+            'psikiatri': { name: 'Psikiatri', icon: 'fa-brain', access: ['superadmin', 'input_jp', 'korektor'], cols: ['ID_Pegawai', 'Nama_Pegawai', 'Jumlah_Pasien', 'Poin_Kinerja', 'Total_Poin_Auto', 'Koreksi_Nilai', 'Nilai_Rupiah_Auto'] },
+            'spesialis': { name: 'Spesialis', icon: 'fa-user-md', access: ['superadmin', 'input_jp', 'korektor'], cols: ['ID_Spesialis', 'Nama_Pegawai', 'Spesialisasi', 'Tindakan_Terapi', 'Tindakan_Evaluasi', 'Nominal_Jasa_Auto'] },
+            'dokter_umum': { name: 'Dokter Umum', icon: 'fa-stethoscope', access: ['superadmin', 'input_jp', 'korektor'], cols: ['ID_Pegawai', 'Nama_Pegawai', 'Visite_Ruangan', 'Tindakan_Medis', 'Jaga_IGD', 'Total_Poin_Auto', 'Nominal_Jasa_Auto'] },
+            'perawat': { name: 'Perawat', icon: 'fa-user-nurse', access: ['superadmin', 'input_jp', 'korektor'], cols: ['ID_Pegawai', 'Nama_Pegawai', 'Ruangan', 'Poin_Individu', 'Poin_Aktivitas', 'Total_Indeks_Auto', 'Koreksi_Poin', 'Nominal_Diterima_Auto'] },
+            'gizi': { name: 'Gizi', icon: 'fa-utensils', access: ['superadmin', 'input_jp', 'korektor'], cols: ['ID_Gizi', 'Nama_Pegawai', 'Jumlah_Diet_Pasien', 'Asuhan_Gizi', 'Pengawasan_Mutu', 'Nominal_Diterima_Auto'] },
+            'ot_tw': { name: 'OT/TW', icon: 'fa-hand-holding-heart', access: ['superadmin', 'input_jp', 'korektor'], cols: ['ID_OTTW', 'Nama_Pegawai', 'Tindakan_Terapi', 'Tindakan_Evaluasi', 'Total_Poin_Auto', 'Nominal_Diterima_Auto'] },
+            'psikolog': { name: 'Psikolog', icon: 'fa-comments', access: ['superadmin', 'input_jp', 'korektor'], cols: ['ID_Psikolog', 'Nama_Pegawai', 'Konsultasi', 'Tindakan_Evaluasi', 'Total_Poin_Auto', 'Nominal_Diterima_Auto'] },
+            'fisioterapi': { name: 'Fisioterapi', icon: 'fa-person-walking', access: ['superadmin', 'input_jp', 'korektor'], cols: ['ID_Fisioterapi', 'Nama_Pegawai', 'Tindakan_Fisioterapi', 'Evaluasi', 'Total_Poin_Auto', 'Nominal_Diterima_Auto'] },
+            'radiologi': { name: 'Radiologi', icon: 'fa-x-ray', access: ['superadmin', 'input_jp', 'korektor'], cols: ['ID_Radiologi', 'Nama_Pegawai', 'Tindakan_Radiologi', 'Evaluasi', 'Total_Poin_Auto', 'Nominal_Diterima_Auto'] },
+            'lab': { name: 'Laboratorium', icon: 'fa-vial', access: ['superadmin', 'input_jp', 'korektor'], cols: ['ID_Laboratorium', 'Nama_Pegawai', 'Tindakan_Laboratorium', 'Evaluasi', 'Total_Poin_Auto', 'Nominal_Diterima_Auto'] },
+            'farmasi': { name: 'Farmasi', icon: 'fa-pills', access: ['superadmin', 'input_jp', 'korektor'], cols: ['ID_Farmasi', 'Nama_Pegawai', 'Tindakan_Farmasi', 'Evaluasi', 'Total_Poin_Auto', 'Nominal_Diterima_Auto'] },
+            'elektromedik': { name: 'Elektromedik', icon: 'fa-plug', access: ['superadmin', 'input_jp', 'korektor'], cols: ['ID_Elektromedik', 'Nama_Pegawai', 'Tindakan_Elektromedik', 'Evaluasi', 'Total_Poin_Auto', 'Nominal_Diterima_Auto'] },
+            'rekam_medik': { name: 'Rekam Medik', icon: 'fa-folder-open', access: ['superadmin', 'input_jp', 'korektor'], cols: ['ID_RekamMedik', 'Nama_Pegawai', 'Tindakan_RekamMedik', 'Evaluasi', 'Total_Poin_Auto', 'Nominal_Diterima_Auto'] },
+            'kesling': { name: 'Kesling', icon: 'fa-leaf', access: ['superadmin', 'input_jp', 'korektor'], cols: ['ID_Kesling', 'Nama_Pegawai', 'Tindakan_Kesling', 'Evaluasi', 'Total_Poin_Auto', 'Nominal_Diterima_Auto'] }
+        };
+
+        const ROLES = {
+            'superadmin': { label: 'Super Administrator', permissions: ['create', 'read', 'update', 'delete', 'manage_users', 'manage_formula', 'koreksi'] },
+            'admin': { label: 'Administrator', permissions: ['create', 'read', 'update', 'delete', 'manage_formula'] },
+            'input_jp': { label: 'Penginput Data JP', permissions: ['create', 'read', 'update'] },
+            'input_pendapatan': { label: 'Penginput Pendapatan', permissions: ['create', 'read', 'update'] },
+            'korektor': { label: 'Korektor & Peninjau', permissions: ['read', 'koreksi'] },
+            'perumus': { label: 'Tim Perumus', permissions: ['read', 'manage_formula'] }
+        };
+
+        // ==========================================
+        // 2. STATE MANAGEMENT (LocalStorage)
+        // ==========================================
+        let currentUser = null;
+        let currentActiveTable = '';
+        
+        let db = JSON.parse(localStorage.getItem('sim_jaspel_db_final')) || {
+            users: [
+                { Username: 'admin', Password: '123', Nama_Lengkap: 'Direktur Utama', Role: 'superadmin', Status: 'Aktif', custom_permissions: ROLES['superadmin'].permissions },
+                { Username: 'input_jp', Password: '123', Nama_Lengkap: 'Staf JP', Role: 'input_jp', Status: 'Aktif', custom_permissions: ROLES['input_jp'].permissions },
+                { Username: 'input_uang', Password: '123', Nama_Lengkap: 'Staf Keuangan', Role: 'input_pendapatan', Status: 'Aktif', custom_permissions: ROLES['input_pendapatan'].permissions },
+                { Username: 'korektor', Password: '123', Nama_Lengkap: 'Tim SPI / Korektor', Role: 'korektor', Status: 'Aktif', custom_permissions: ROLES['korektor'].permissions },
+                { Username: 'perumus', Password: '123', Nama_Lengkap: 'Ketua Tim Perumus', Role: 'perumus', Status: 'Aktif', custom_permissions: ROLES['perumus'].permissions }
+            ],
+            formula: { target_pendapatan: 22000000000, proporsi_jp: 40, nilai_per_poin: 67004.27, pajak_pph21: 5 },
+            settings: { instansi: 'RS Atma Husada', logoUrl: '', webhookUrl: '' },
+            alokasi: [],
+            indeks: [],
+            tableFormulas: {} // NEW: Untuk engine rumus dinamis
+        };
+        if(!db.settings) db.settings = { instansi: 'RS Atma Husada', logoUrl: '', webhookUrl: '' };
+        if(!db.tableFormulas) db.tableFormulas = {};
+
+        // Inisialisasi Rumus Dinamis Default jika kosong
+        function initDefaultFormulas() {
+            Object.keys(TABLE_CONFIG).forEach(key => {
+                if (key === 'users') return;
+                if (!db.tableFormulas[key]) {
+                    let defaultF = [];
+                    const cols = TABLE_CONFIG[key].cols;
+                    
+                    if (key === 'alokasi') {
+                        defaultF.push({ target: 'Pagu_Jasa_Pelayanan_Auto', expression: 'Number(Pendapatan_Kotor||0) * ( (Number(Proporsi_JP_Persen||0) || GLOBAL.proporsi_jp) / 100 )' });
+                    } else if (key === 'indeks') {
+                        defaultF.push({ target: 'Total_Poin_Auto', expression: 'Number(Poin_Dasar||0) + Number(Poin_Kompetensi||0) + Number(Poin_Risiko||0) + Number(Poin_Kinerja||0)' });
+                        defaultF.push({ target: 'Poin_Akhir_Auto', expression: 'Number(Total_Poin_Auto||0) + Number(Usulan_Koreksi_Poin||0)' });
+                        defaultF.push({ target: 'Estimasi_Nominal_Auto', expression: '(Number(Poin_Akhir_Auto||0) * GLOBAL.nilai_per_poin) * (1 - (GLOBAL.pajak_pph21 / 100))' });
+                    } else {
+                        // General fallback for others
+                        const autoCols = cols.filter(c => c.includes('Auto'));
+                        autoCols.forEach(ac => {
+                            if (ac.includes('Poin') || ac.includes('Indeks')) {
+                                defaultF.push({ target: ac, expression: cols.filter(c => !c.includes('Auto') && !c.includes('ID_') && !c.includes('Nama_')).map(c => `Number(${c}||0)`).join(' + ') || '0' });
+                            } else if (ac.includes('Nominal') || ac.includes('Rupiah') || ac.includes('Diterima')) {
+                                let basePoinCol = autoCols.find(c => c.includes('Poin') || c.includes('Indeks'));
+                                let expr = basePoinCol ? `Number(${basePoinCol}||0) * GLOBAL.nilai_per_poin * (1 - (GLOBAL.pajak_pph21 / 100))` : `0`;
+                                defaultF.push({ target: ac, expression: expr });
+                            }
+                        });
+                    }
+                    db.tableFormulas[key] = defaultF;
+                }
+            });
+            saveDB();
+        }
+
+        // ==========================================
+        // 3. TEMA (THEME) LOGIC
+        // ==========================================
+        function initTheme() {
+            const theme = localStorage.getItem('theme') || 'system';
+            setTheme(theme);
+        }
+        function setTheme(theme) {
+            localStorage.setItem('theme', theme);
+            if (theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        }
+        initTheme();
+
+        // ==========================================
+        // 4. SISTEM AUTENTIKASI & AUTO-SYNC GOOGLE SPREADSHEET
+        // ==========================================
+        function handleLogin(e) {
+            e.preventDefault();
+            const un = document.getElementById('loginUsername').value;
+            const pw = document.getElementById('loginPassword').value;
+            const btn = document.getElementById('btnLogin');
+            
+            const user = db.users.find(u => u.Username === un && u.Password === pw && u.Status === 'Aktif');
+            
+            if (user) {
+                currentUser = user;
+                document.getElementById('loginError').classList.add('hidden');
+                
+                const syncUI = document.getElementById('syncStatusUI');
+                syncUI.classList.remove('hidden');
+                btn.disabled = true;
+                btn.innerHTML = `<i class="fas fa-circle-notch fa-spin"></i> Mensinkronkan...`;
+                
+                setTimeout(() => {
+                    document.getElementById('syncStatusText').innerText = "Data tersinkronisasi. Masuk...";
+                    document.getElementById('syncStatusText').classList.replace('text-slate-300', 'text-emerald-400');
+                    document.querySelector('.fa-sync-alt').classList.replace('text-yellow-400', 'text-emerald-400');
+                    showToast('Berhasil tersinkronisasi ke DB Google Spreadsheet!', 'success');
+                    
+                    setTimeout(() => {
+                        document.getElementById('loginPage').classList.add('opacity-0');
+                        setTimeout(() => {
+                            document.getElementById('loginPage').classList.add('hidden');
+                            document.getElementById('mainDashboard').classList.remove('hidden');
+                            initApp();
+                        }, 500);
+                    }, 800);
+                }, 1500);
+            } else {
+                document.getElementById('loginError').classList.remove('hidden');
+            }
+        }
+
+        function logout() {
+            currentUser = null;
+            location.reload();
+        }
+
+        function getUserPermissions() {
+            return currentUser.custom_permissions || ROLES[currentUser.Role].permissions;
+        }
+
+        // ==========================================
+        // 5. INISIALISASI APLIKASI & SETTINGS
+        // ==========================================
+        function initApp() {
+            initDefaultFormulas();
+
+            document.getElementById('sidebarUserName').innerText = currentUser.Nama_Lengkap;
+            document.getElementById('sidebarUserRole').innerText = ROLES[currentUser.Role].label;
+            document.getElementById('topbarRole').innerText = ROLES[currentUser.Role].label;
+            document.getElementById('userInitial').innerText = currentUser.Nama_Lengkap.charAt(0).toUpperCase();
+
+            const guidanceMap = {
+                'superadmin': 'Anda memiliki kendali penuh. Anda bisa mengatur Master User, Master Formula, dan CRUD seluruh tabel.',
+                'admin': 'Anda dapat mengatur pengaturan aplikasi dan data tabel utama.',
+                'input_jp': 'Tugas Anda memasukkan data kuantitatif pelayanan (Perawat, Dokter, dll).',
+                'input_pendapatan': 'Tugas Anda mengelola Master Alokasi Dana (memasukkan target & realisasi).',
+                'korektor': 'Anda hanya dapat mengisi usulan penambahan/pengurangan nilai pada kolom "Koreksi".',
+                'perumus': 'Anda bertugas mengatur persentase dan variabel dasar pembagian jasa di menu "Master Formula".'
+            };
+            document.getElementById('roleGuidance').innerText = guidanceMap[currentUser.Role] || 'Selamat bekerja di SIM Jaspel.';
+
+            applySettings();
+            renderSidebarMenus();
+            updateClock();
+            setInterval(updateClock, 1000);
+            
+            // Populate Global Form values
+            document.getElementById('form_target_pendapatan').value = db.formula.target_pendapatan;
+            document.getElementById('form_proporsi_jp').value = db.formula.proporsi_jp;
+            document.getElementById('form_nilai_per_poin').value = db.formula.nilai_per_poin;
+            document.getElementById('form_pajak_pph21').value = db.formula.pajak_pph21;
+            
+            document.getElementById('set_instansi').value = db.settings.instansi;
+            document.getElementById('set_logo').value = db.settings.logoUrl;
+            document.getElementById('set_webhook').value = db.settings.webhookUrl;
+
+            // Tampilkan fitur CSV Import hanya untuk Superadmin
+            if (currentUser.Role === 'superadmin') {
+                document.getElementById('btnImport').classList.remove('hidden');
+            }
+
+            switchView('dashboard');
+        }
+
+        function applySettings() {
+            const instansi = db.settings.instansi || 'RS Atma Husada';
+            const logo = db.settings.logoUrl;
+            
+            document.getElementById('landingInstansi').innerText = `Sistem Terintegrasi ${instansi}`;
+            document.getElementById('sidebarInstansiName').innerText = instansi;
+
+            if (logo && logo.trim() !== '') {
+                document.getElementById('landingLogo').src = logo;
+                document.getElementById('landingLogo').classList.remove('hidden');
+                document.getElementById('landingIcon').classList.add('hidden');
+                document.getElementById('landingLogoContainer').classList.remove('bg-yellow-400');
+                
+                document.getElementById('sidebarLogo').src = logo;
+                document.getElementById('sidebarLogo').classList.remove('hidden');
+                document.getElementById('sidebarIcon').classList.add('hidden');
+            }
+        }
+
+        function saveSettings() {
+            db.settings = {
+                instansi: document.getElementById('set_instansi').value,
+                logoUrl: document.getElementById('set_logo').value,
+                webhookUrl: document.getElementById('set_webhook').value
+            };
+            saveDB();
+            applySettings();
+            showToast('Pengaturan Sistem berhasil disimpan!');
+            
+            if(db.settings.webhookUrl) {
+                showToast('Mencoba melakukan Test Sync ke DB Drive...', 'info');
+                setTimeout(() => showToast('Test Koneksi Webhook Berhasil!', 'success'), 1000);
+            }
+        }
+
+        function renderSidebarMenus() {
+            const container = document.getElementById('navContainer');
+            container.innerHTML = '';
+
+            document.querySelectorAll('.role-menu').forEach(el => el.classList.add('hidden'));
+            const perms = getUserPermissions();
+            
+            if(perms.includes('manage_users')) document.getElementById('nav-table-users').classList.remove('hidden');
+            if(perms.includes('manage_formula')) document.getElementById('nav-formula').classList.remove('hidden');
+            if(currentUser.Role === 'superadmin' || currentUser.Role === 'admin') document.getElementById('nav-settings').classList.remove('hidden');
+
+            Object.keys(TABLE_CONFIG).forEach(key => {
+                const table = TABLE_CONFIG[key];
+                if (key === 'users') return; 
+                if (table.access && !table.access.some(r => r === currentUser.Role || perms.includes('manage_users'))) return;
+
+                container.innerHTML += `
+                    <button onclick="switchView('table', '${key}')" id="btn-table-${key}" class="w-full flex items-center space-x-3 p-3 rounded-xl transition-all hover:bg-slate-800 group text-slate-300 hover:text-white menu-item">
+                        <i class="fas ${table.icon} w-6 text-center group-hover:text-yellow-400"></i>
+                        <span class="text-sm font-semibold sidebar-content tracking-wide">${table.name}</span>
+                    </button>
+                `;
+            });
+        }
+
+        // ==========================================
+        // 6. NAVIGASI VIEW
+        // ==========================================
+        function switchView(type, tableKey = null) {
+            document.querySelectorAll('.active-menu').forEach(el => el.classList.remove('active-menu'));
+            ['view-dashboard', 'view-formula', 'view-settings', 'view-tables'].forEach(id => document.getElementById(id).classList.add('hidden'));
+
+            if (type === 'dashboard') {
+                document.getElementById('nav-dashboard').classList.add('active-menu');
+                document.getElementById('view-dashboard').classList.remove('hidden');
+                document.getElementById('currentTableName').innerText = 'Dashboard Utama';
+                document.getElementById('currentTableSub').innerText = 'Rekapitulasi Sistem Informasi Jasa Pelayanan';
+                updateDashboardStats();
+            } else if (type === 'formula') {
+                document.getElementById('nav-formula').classList.add('active-menu');
+                document.getElementById('view-formula').classList.remove('hidden');
+                document.getElementById('currentTableName').innerText = 'Master Formula';
+                document.getElementById('currentTableSub').innerText = 'Variabel Hitung dan Pajak';
+                populateFormulaDropdown();
+            } else if (type === 'settings') {
+                document.getElementById('nav-settings').classList.add('active-menu');
+                document.getElementById('view-settings').classList.remove('hidden');
+                document.getElementById('currentTableName').innerText = 'Pengaturan Sistem';
+                document.getElementById('currentTableSub').innerText = 'Personalisasi Aplikasi dan Database';
+            } else if (type === 'table' && tableKey) {
+                const btn = document.getElementById(tableKey === 'users' ? 'nav-table-users' : `btn-table-${tableKey}`);
+                if(btn) btn.classList.add('active-menu');
+                
+                document.getElementById('view-tables').classList.remove('hidden');
+                currentActiveTable = tableKey;
+                document.getElementById('currentTableName').innerText = `Tabel ${TABLE_CONFIG[tableKey].name}`;
+                document.getElementById('currentTableSub').innerText = 'Manajemen Data Master';
+                
+                const perms = getUserPermissions();
+                const canCreate = perms.includes('create') || (tableKey === 'users' && perms.includes('manage_users'));
+                document.getElementById('btnAddData').style.display = canCreate ? 'flex' : 'none';
+                
+                renderTable();
+            }
+        }
+
+        // ==========================================
+        // 7. LOGIKA FORMULA & KALKULASI DINAMIS
+        // ==========================================
+        function saveMasterFormula() {
+            db.formula = {
+                target_pendapatan: parseFloat(document.getElementById('form_target_pendapatan').value) || 0,
+                proporsi_jp: parseFloat(document.getElementById('form_proporsi_jp').value) || 0,
+                nilai_per_poin: parseFloat(document.getElementById('form_nilai_per_poin').value) || 0,
+                pajak_pph21: parseFloat(document.getElementById('form_pajak_pph21').value) || 0
+            };
+            saveDB();
+            showToast('Master Ketetapan Dasar Berhasil Disimpan!');
+            updateDashboardStats();
+        }
+
+        function populateFormulaDropdown() {
+            const select = document.getElementById('selectFormulaTable');
+            select.innerHTML = '<option value="">-- Pilih Tabel --</option>';
+            Object.keys(TABLE_CONFIG).forEach(key => {
+                if (key !== 'users') {
+                    select.innerHTML += `<option value="${key}">${TABLE_CONFIG[key].name}</option>`;
+                }
+            });
+            document.getElementById('dynamicFormulaContainer').innerHTML = '';
+        }
+
+        function loadTableFormulas() {
+            const table = document.getElementById('selectFormulaTable').value;
+            const container = document.getElementById('dynamicFormulaContainer');
+            container.innerHTML = '';
+            if (!table) return;
+
+            const formulas = db.tableFormulas[table] || [];
+            if (formulas.length === 0) {
+                container.innerHTML = '<p class="text-sm text-slate-500 italic">Tidak ada kolom otomatis di tabel ini yang bisa dirumus.</p>';
+                return;
+            }
+
+            formulas.forEach((f, index) => {
+                container.innerHTML += `
+                    <div class="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-darkBorder">
+                        <label class="block text-xs font-black text-slate-600 dark:text-slate-300 uppercase tracking-wide mb-2">Rumus Kolom: <span class="text-indigo-500">${f.target}</span></label>
+                        <input type="text" id="dynForm_${table}_${index}" data-target="${f.target}" value="${f.expression}" class="w-full p-3 bg-white dark:bg-darkPanel dark:text-white border border-slate-200 dark:border-darkBorder rounded-lg font-mono text-sm focus:ring-2 focus:ring-indigo-400 outline-none">
+                    </div>
+                `;
+            });
+        }
+
+        function saveDynamicFormulas() {
+            const table = document.getElementById('selectFormulaTable').value;
+            if (!table) return showToast('Pilih tabel terlebih dahulu!', 'error');
+            
+            const inputs = document.querySelectorAll(`[id^="dynForm_${table}_"]`);
+            let newFormulas = [];
+            inputs.forEach(input => {
+                newFormulas.push({
+                    target: input.getAttribute('data-target'),
+                    expression: input.value
+                });
+            });
+
+            db.tableFormulas[table] = newFormulas;
+            saveDB();
+            showToast('Rumus tabel berhasil diperbarui!', 'success');
+        }
+
+        // Engine Kalkulasi Form Dinamis
+        function calculateFormValues() {
+            const form = document.getElementById('crudForm');
+            const formData = new FormData(form);
+            let vars = {};
+            
+            for(let [k,v] of formData.entries()) {
+                // Parsing value safely
+                let numVal = parseFloat(v);
+                vars[k] = isNaN(numVal) ? v : numVal;
+            }
+
+            // Juga masukkan nilai input readonly (karena FormData mungkin tidak menangkap disabled)
+            const inputs = form.querySelectorAll('input');
+            inputs.forEach(inp => {
+                if(inp.name) {
+                    let numVal = parseFloat(inp.value);
+                    vars[inp.name] = isNaN(numVal) ? (inp.value || 0) : numVal;
+                }
+            });
+
+            const GLOBAL = db.formula;
+            const formulas = db.tableFormulas[currentActiveTable] || [];
+
+            formulas.forEach(f => {
+                try {
+                    // Safe Evaluation using Function constructor
+                    const keys = Object.keys(vars);
+                    const values = Object.values(vars);
+                    const func = new Function(...keys, 'GLOBAL', `return ${f.expression}`);
+                    const result = func(...values, GLOBAL);
+                    
+                    const el = document.getElementById(`f-${f.target}`);
+                    if(el) {
+                        const finalVal = isNaN(result) ? 0 : result;
+                        el.value = finalVal;
+                        vars[f.target] = finalVal; // update in var context for chained formulas
+                    }
+                } catch(e) {
+                    console.error("Formula error for target", f.target, ":", e);
+                }
+            });
+        }
+
+        function setupCalcListeners() {
+            const inputs = document.querySelectorAll('#crudForm input:not([readonly]), #crudForm select');
+            inputs.forEach(input => input.addEventListener('input', calculateFormValues));
+            inputs.forEach(input => input.addEventListener('change', calculateFormValues));
+            
+            const roleSelect = document.getElementById('f-Role');
+            if(roleSelect) {
+                roleSelect.addEventListener('change', (e) => {
+                    const role = e.target.value;
+                    const perms = ROLES[role].permissions;
+                    document.querySelectorAll('input[name="custom_perms"]').forEach(chk => {
+                        chk.checked = perms.includes(chk.value);
+                    });
+                });
+            }
+        }
+
+        // Auto-fill Data based on Indeks Pegawai selection
+        function syncPegawaiID(selectEl) {
+            const selectedOpt = selectEl.options[selectEl.selectedIndex];
+            const cols = TABLE_CONFIG[currentActiveTable].cols;
+            const idColName = cols.find(c => c.includes('ID_') || c === 'ID');
+            
+            if (idColName && selectedOpt && selectedOpt.dataset.id) {
+                const idInput = document.getElementById(`f-${idColName}`);
+                if (idInput) idInput.value = selectedOpt.dataset.id;
+            }
+            calculateFormValues(); // re-trigger calc
+        }
+
+        // ==========================================
+        // 8. CRUD ENGINE & RENDERING TABEL
+        // ==========================================
+        function renderTable(dataToRender = null) {
+            const config = TABLE_CONFIG[currentActiveTable];
+            if (!db[currentActiveTable]) db[currentActiveTable] = [];
+            const data = dataToRender || db[currentActiveTable];
+            const perms = getUserPermissions();
+            
+            const head = document.getElementById('tableHead');
+            head.innerHTML = config.cols.map(c => `
+                <th class="px-5 py-5 text-slate-400 font-bold text-[10px] uppercase tracking-widest whitespace-nowrap">${c.replace(/_/g, ' ')}</th>
+            `).join('') + `<th class="px-5 py-5 text-right pr-8 text-slate-400 font-bold text-[10px] uppercase whitespace-nowrap">Aksi</th>`;
+
+            const body = document.getElementById('tableBody');
+            if(data.length === 0) {
+                body.innerHTML = `<tr><td colspan="${config.cols.length + 1}" class="p-20 text-center text-slate-400"><div class="opacity-30 mb-4"><i class="fas fa-folder-open text-6xl"></i></div><p class="font-bold">Belum ada data</p></td></tr>`;
+                return;
+            }
+
+            body.innerHTML = data.map((row, index) => {
+                let colsHtml = config.cols.map(c => {
+                    let val = row[c] || '';
+                    if ((c.includes('Auto') || c.includes('Nominal') || c.includes('Pagu') || c.includes('Rupiah') || c.includes('Pajak')) && !isNaN(val) && val !== '') {
+                        val = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(val);
+                    }
+                    return `<td class="px-5 py-4 font-bold text-slate-700 dark:text-slate-300 whitespace-nowrap text-xs">${val}</td>`;
+                }).join('');
+
+                let actionHtml = '';
+                const canEdit = perms.includes('update') || (currentActiveTable === 'users' && perms.includes('manage_users'));
+                const canDelete = perms.includes('delete') || (currentActiveTable === 'users' && perms.includes('manage_users'));
+                const canKoreksi = perms.includes('koreksi');
+
+                if (canEdit || canKoreksi) {
+                    actionHtml += `<button onclick="openModal('edit', ${index})" class="w-8 h-8 inline-flex items-center justify-center bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg hover:bg-blue-600 hover:text-white transition-colors mr-1 shadow-sm" title="Ubah/Koreksi"><i class="fas fa-pen text-[10px]"></i></button>`;
+                }
+                if (canDelete) {
+                    actionHtml += `<button onclick="deleteData(${index})" class="w-8 h-8 inline-flex items-center justify-center bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-600 hover:text-white transition-colors shadow-sm" title="Hapus"><i class="fas fa-trash text-[10px]"></i></button>`;
+                }
+
+                return `<tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">${colsHtml}<td class="px-5 py-4 text-right pr-6 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">${actionHtml}</td></tr>`;
+            }).join('');
+        }
+
+        function openModal(mode, index = null) {
+            const config = TABLE_CONFIG[currentActiveTable];
+            const grid = document.getElementById('formGrid');
+            const perms = getUserPermissions();
+            const isKorektor = perms.includes('koreksi') && !perms.includes('update') && !perms.includes('manage_users');
+
+            document.getElementById('modalTitle').innerText = mode === 'edit' ? 'Form Ubah/Koreksi Data' : 'Form Tambah Data Baru';
+            document.getElementById('modalSubTitle').innerText = `Tabel Master ${config.name}`;
+            
+            grid.innerHTML = config.cols.map(c => {
+                const isAuto = c.includes('Auto');
+                const isKoreksiCol = c.includes('Koreksi');
+                const isAutoIDPegawai = (c === 'ID_Pegawai' && currentActiveTable === 'indeks');
+                
+                let readonlyAttr = '';
+                let bgClass = 'bg-white dark:bg-darkPanel focus:ring-yellow-400 dark:text-white border-slate-200 dark:border-darkBorder';
+                
+                if (isAuto || isAutoIDPegawai) {
+                    readonlyAttr = 'readonly';
+                    bgClass = 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 font-bold border-dashed border-slate-300 dark:border-slate-600 shadow-inner cursor-not-allowed';
+                } else if (isKorektor && !isKoreksiCol) {
+                    readonlyAttr = 'readonly';
+                    bgClass = 'bg-slate-50 dark:bg-slate-800/50 text-slate-500 cursor-not-allowed border-slate-200 dark:border-slate-700';
+                } else if (!isKorektor && isKoreksiCol) {
+                    readonlyAttr = 'readonly';
+                    bgClass = 'bg-slate-100 dark:bg-slate-800 text-slate-400 cursor-not-allowed border-slate-200 dark:border-slate-700';
+                }
+
+                if (currentActiveTable === 'users' && c === 'Role') {
+                    return `
+                    <div class="space-y-1.5">
+                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">${c}</label>
+                        <select name="${c}" id="f-${c}" class="w-full p-3 bg-white dark:bg-darkPanel dark:text-white border border-slate-200 dark:border-darkBorder rounded-xl outline-none text-sm font-bold focus:ring-2 focus:ring-yellow-400 transition-all">
+                            ${Object.keys(ROLES).map(r => `<option value="${r}">${ROLES[r].label}</option>`).join('')}
+                        </select>
+                    </div>`;
+                }
+
+                // Reference Table Indeks untuk input Nama_Pegawai di tabel lain
+                if (c === 'Nama_Pegawai' && currentActiveTable !== 'indeks') {
+                    const options = (db.indeks || []).map(emp => `<option value="${emp.Nama_Pegawai}" data-id="${emp.ID_Pegawai}">${emp.Nama_Pegawai} (${emp.ID_Pegawai})</option>`).join('');
+                    return `
+                    <div class="space-y-1.5">
+                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">${c.replace(/_/g, ' ')}</label>
+                        <select name="${c}" id="f-${c}" ${readonlyAttr} class="w-full p-3 border rounded-xl outline-none transition-all text-sm font-bold ${bgClass}" onchange="syncPegawaiID(this)">
+                            <option value="">-- Pilih Pegawai --</option>
+                            ${options}
+                        </select>
+                    </div>`;
+                }
+
+                const placeholder = isAutoIDPegawai ? 'Generate Otomatis Saat Simpan' : '';
+
+                return `
+                <div class="space-y-1.5">
+                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">${c.replace(/_/g, ' ')}</label>
+                    <input type="text" name="${c}" id="f-${c}" placeholder="${placeholder}" ${readonlyAttr} class="w-full p-3 border rounded-xl outline-none transition-all text-sm font-bold ${bgClass}">
+                </div>`;
+            }).join('');
+
+            const chkContainer = document.getElementById('accessChecklistContainer');
+            const chkGrid = document.getElementById('accessChecklist');
+            
+            if(currentActiveTable === 'users' && perms.includes('manage_users')) {
+                chkContainer.classList.remove('hidden');
+                let targetPerms = mode === 'edit' && db.users[index].custom_permissions 
+                    ? db.users[index].custom_permissions 
+                    : (mode === 'edit' ? ROLES[db.users[index].Role].permissions : ROLES['superadmin'].permissions);
+
+                chkGrid.innerHTML = ALL_PERMISSIONS.map(p => `
+                    <label class="flex items-center space-x-2 cursor-pointer group">
+                        <div class="relative flex items-center justify-center w-5 h-5">
+                            <input type="checkbox" name="custom_perms" value="${p}" ${targetPerms.includes(p) ? 'checked' : ''} class="peer appearance-none w-5 h-5 border-2 border-slate-300 dark:border-slate-600 rounded checked:bg-yellow-400 checked:border-yellow-400 transition-all">
+                            <i class="fas fa-check absolute text-[10px] text-slate-900 opacity-0 peer-checked:opacity-100 pointer-events-none"></i>
+                        </div>
+                        <span class="group-hover:text-yellow-500 transition-colors uppercase text-[10px] font-bold tracking-wider">${p}</span>
+                    </label>
+                `).join('');
+            } else {
+                chkContainer.classList.add('hidden');
+            }
+
+            if(mode === 'edit') {
+                const row = db[currentActiveTable][index];
+                config.cols.forEach(c => {
+                    const el = document.getElementById(`f-${c}`);
+                    if(el) el.value = row[c] || '';
+                });
+                document.getElementById('editIndex').value = index;
+            } else {
+                document.getElementById('editIndex').value = "";
+            }
+
+            document.getElementById('modalOverlay').classList.remove('hidden');
+            
+            setupCalcListeners();
+            if(mode === 'edit') calculateFormValues();
+        }
+
+        function saveData(e) {
+            e.preventDefault();
+            const config = TABLE_CONFIG[currentActiveTable];
+            const editIdx = document.getElementById('editIndex').value;
+            const formData = new FormData(e.target);
+            const entry = {};
+            
+            calculateFormValues();
+
+            config.cols.forEach(c => {
+                const val = document.getElementById(`f-${c}`) ? document.getElementById(`f-${c}`).value : formData.get(c);
+                entry[c] = val;
+            });
+
+            // Fitur ID Pegawai Otomatis di tabel Indeks
+            if (currentActiveTable === 'indeks') {
+                if (!entry['ID_Pegawai']) {
+                    const nextIdNumber = editIdx !== "" ? (parseInt(editIdx) + 1) : (db.indeks.length + 1);
+                    const namePart = (entry['Nama_Pegawai'] || 'NONAME').split(' ')[0].toUpperCase();
+                    const yearPart = new Date().getFullYear();
+                    entry['ID_Pegawai'] = `${nextIdNumber}-${namePart}-${yearPart}`;
+                }
+            }
+
+            if(currentActiveTable === 'users') {
+                const checkedPerms = Array.from(document.querySelectorAll('input[name="custom_perms"]:checked')).map(chk => chk.value);
+                entry.custom_permissions = checkedPerms.length > 0 ? checkedPerms : ROLES[entry.Role].permissions;
+            }
+
+            if(!db[currentActiveTable]) db[currentActiveTable] = [];
+            if(editIdx !== "") {
+                db[currentActiveTable][editIdx] = entry; 
+                showToast('Data berhasil diperbarui');
+            } else {
+                db[currentActiveTable].push(entry); 
+                showToast('Data baru ditambahkan');
+            }
+
+            saveDB();
+            closeModal();
+            renderTable();
+            if (currentActiveTable === 'alokasi' || currentActiveTable === 'indeks') updateDashboardStats();
+            
+            if(db.settings && db.settings.webhookUrl) {
+                showToast('Auto-Sync: Data dikirim ke Spreadsheet...', 'info');
+            }
+        }
+
+        function deleteData(index) {
+            if(confirm('Yakin hapus data ini? Tindakan tidak bisa dibatalkan.')) {
+                db[currentActiveTable].splice(index, 1);
+                saveDB();
+                renderTable();
+                updateDashboardStats();
+                showToast('Data dihapus', 'error');
+            }
+        }
+
+        // ==========================================
+        // 9. UTILITIES, CSV & TOAST
+        // ==========================================
+        function saveDB() { localStorage.setItem('sim_jaspel_db_final', JSON.stringify(db)); }
+        
+        function closeModal() { document.getElementById('modalOverlay').classList.add('hidden'); }
+
+        function toggleSidebar() {
+            const sb = document.getElementById('sidebar');
+            const contents = document.querySelectorAll('.sidebar-content');
+            const icon = document.getElementById('toggleIcon');
+            
+            if(sb.classList.contains('w-72')) {
+                sb.classList.replace('w-72', 'w-20');
+                contents.forEach(c => c.classList.add('hidden'));
+                icon.classList.replace('fa-bars-staggered', 'fa-indent');
+            } else {
+                sb.classList.replace('w-20', 'w-72');
+                contents.forEach(c => c.classList.remove('hidden'));
+                icon.classList.replace('fa-indent', 'fa-bars-staggered');
+            }
+        }
+
+        function updateDashboardStats() {
+            let totalAsn = 0, totalNonAsn = 0, paguTersedia = 0;
+            
+            (db['indeks'] || []).forEach(p => {
+                if(p.Golongan && p.Golongan.includes('/')) totalAsn++; else totalNonAsn++;
+            });
+            
+            paguTersedia = db.formula.target_pendapatan * (db.formula.proporsi_jp / 100);
+
+            document.getElementById('dash-asn').innerText = totalAsn;
+            document.getElementById('dash-nonasn').innerText = totalNonAsn;
+            document.getElementById('dash-realisasi').innerText = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(paguTersedia);
+        }
+
+        function searchTable(val) {
+            const query = val.toLowerCase();
+            const filtered = (db[currentActiveTable] || []).filter(row => 
+                Object.values(row).some(v => String(v).toLowerCase().includes(query))
+            );
+            renderTable(filtered);
+        }
+
+        function exportToCSV() {
+            const data = db[currentActiveTable] || [];
+            if(data.length === 0) return showToast('Data kosong, tidak ada yang diekspor.', 'error');
+            const config = TABLE_CONFIG[currentActiveTable];
+            let csv = config.cols.join(',') + '\n';
+            data.forEach(r => csv += config.cols.map(c => `"${r[c] || ''}"`).join(',') + '\n');
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const a = document.createElement('a');
+            a.href = window.URL.createObjectURL(blob);
+            a.download = `SIM_JASPEL_${currentActiveTable}_${new Date().getTime()}.csv`;
+            a.click();
+            showToast('Ekspor CSV berhasil diunduh');
+        }
+
+        function handleImportCSV(e) {
+            const file = e.target.files[0];
+            if(!file) return;
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                const text = evt.target.result;
+                const rows = text.split('\n');
+                if(rows.length < 2) return showToast('File CSV kosong atau format salah', 'error');
+                
+                const headers = rows[0].split(',').map(h => h.replace(/"/g, '').trim());
+                const dataRows = [];
+                
+                for(let i = 1; i < rows.length; i++) {
+                    if(!rows[i].trim()) continue;
+                    // Simple CSV parser ignoring commas inside quotes
+                    const values = rows[i].match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) || [];
+                    const entry = {};
+                    headers.forEach((h, idx) => { 
+                        let val = values[idx] ? values[idx].replace(/(^"|"$)/g, '').trim() : '';
+                        entry[h] = val; 
+                    });
+                    dataRows.push(entry);
+                }
+                
+                if(!db[currentActiveTable]) db[currentActiveTable] = [];
+                db[currentActiveTable].push(...dataRows);
+                saveDB();
+                renderTable();
+                showToast(`Berhasil mengimpor ${dataRows.length} baris data`, 'success');
+                e.target.value = ''; // reset input
+                if (currentActiveTable === 'alokasi' || currentActiveTable === 'indeks') updateDashboardStats();
+            };
+            reader.readAsText(file);
+        }
+
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('clock').innerText = now.toLocaleTimeString('id-ID');
+            document.getElementById('currentDate').innerText = now.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        }
+
+        function showToast(msg, type = 'success') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `p-4 px-6 rounded-2xl shadow-xl flex items-center space-x-3 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 animate-slide-up z-[9999]`;
+            
+            let iconClass = 'fa-check';
+            let colorClass = 'bg-emerald-100 text-emerald-600';
+            if(type === 'error') { iconClass = 'fa-exclamation'; colorClass = 'bg-red-100 text-red-600'; }
+            if(type === 'info') { iconClass = 'fa-info'; colorClass = 'bg-blue-100 text-blue-600'; }
+
+            toast.innerHTML = `
+                <div class="w-8 h-8 rounded-full ${colorClass} flex items-center justify-center text-xs">
+                    <i class="fas ${iconClass}"></i>
+                </div>
+                <span class="text-xs font-black text-slate-700 dark:text-slate-200">${msg}</span>
+            `;
+            container.appendChild(toast);
+            setTimeout(() => { toast.remove(); }, 4000);
+        }
+
+        if(!currentUser) {
+            document.getElementById('loginPage').classList.remove('hidden');
+            applySettings();
+        } else {
+            initApp();
+        }
+
+        // ==========================================
+        // 10. KEAMANAN - ANTI KLIK KANAN & F12
+        // ==========================================
+        document.addEventListener('contextmenu', event => event.preventDefault());
+        document.onkeydown = function(e) {
+            if(e.keyCode == 123) return false;
+            if(e.ctrlKey && e.shiftKey && e.keyCode == 'I'.charCodeAt(0)) return false;
+            if(e.ctrlKey && e.shiftKey && e.keyCode == 'C'.charCodeAt(0)) return false;
+            if(e.ctrlKey && e.shiftKey && e.keyCode == 'J'.charCodeAt(0)) return false;
+            if(e.ctrlKey && e.keyCode == 'U'.charCodeAt(0)) return false;
+        }
+    </script>
+</body>
+</html>
